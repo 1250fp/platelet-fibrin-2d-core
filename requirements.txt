@@ -1,0 +1,9 @@
+# Required (validated versions, CPython 3.14)
+numpy==2.5.4
+scipy==1.18.1
+# Optional: PNG figures and raster masks (skip with --no-figures --no-masks)
+matplotlib==3.11.2
+# Optional: limits BLAS threads inside --workers > 1 processes
+threadpoolctl==3.7.0
+# Optional, Windows + NVIDIA GPU only, for --backend cuda
+# nvidia-cuda-nvrtc-cu12
