@@ -1,9 +1,15 @@
-"""State containers shared by the Program19 mechanics modules."""
+"""State containers and shared state helpers for the Program19.3 2-D core."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 import numpy as np
+
+from .config import Program19Config
+
+K_B_J_PER_K = 1.380649e-23
+J_PER_NN_UM = 1.0e-15
 
 
 @dataclass
@@ -54,6 +60,36 @@ class StepDiagnostics(ForceDiagnostics):
     internal_substeps: int = 1
     node_diffusion_um2_s: float = 0.0
     platelet_diffusion_um2_s: float = 0.0
+
+
+def kbt_nN_um(config: Program19Config) -> float:
+    """Thermal energy k_B*T in nN*um (1 nN*um = 1e-15 J); ~4.14e-6 nN*um at 300 K."""
+    return K_B_J_PER_K * config.temperature_K / J_PER_NN_UM
+
+
+def mobility_and_diffusion(
+    config: Program19Config,
+) -> tuple[float, float, float, float]:
+    """Return node/platelet drag (nN*s/um) and D (um^2/s)."""
+    if config.mobility_model == "effective_network":
+        node_drag = config.effective_node_drag_nN_s_per_um
+        platelet_drag = config.effective_platelet_drag_nN_s_per_um
+    else:
+        node_radius_m = config.fiber_radius_um * 1e-6
+        platelet_radius_m = config.platelet_radius_um * 1e-6
+        node_drag = 6.0 * math.pi * config.viscosity_Pa_s * node_radius_m * 1e3
+        platelet_drag = 6.0 * math.pi * config.viscosity_Pa_s * platelet_radius_m * 1e3
+    thermal = kbt_nN_um(config)
+    return node_drag, platelet_drag, thermal / node_drag, thermal / platelet_drag
+
+
+def cohesion_degrees(state: SimulationState) -> np.ndarray:
+    """Number of cohesion links attached to each node."""
+    degree = np.zeros(len(state.nodes_um), dtype=int)
+    for a, b in state.cohesion_pairs:
+        degree[a] += 1
+        degree[b] += 1
+    return degree
 
 
 def rms_vectors(values: np.ndarray) -> float:

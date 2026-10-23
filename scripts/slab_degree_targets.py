@@ -7,7 +7,7 @@ M slabs of thickness k = L_z / M, slab area A = pi R^2.
 Densities come from Program19Config.node_degree_density_um3 (capsule sample 1).
 
   python scripts/slab_degree_targets.py                     # print the table
-  python scripts/slab_degree_targets.py --write-configs DIR # headless JSONs
+  python scripts/slab_degree_targets.py --write-configs DIR # write slab JSONs
 """
 from __future__ import annotations
 
@@ -17,8 +17,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from program19_core.config import CAPSULE_SAMPLE1_VOLUME_UM3  # noqa: E402
-from program19_core.profiles import make_profiled_config  # noqa: E402
+from program19_core.config import CAPSULE_SAMPLE1_VOLUME_UM3, Program19Config  # noqa: E402
 from program19_core.geometry import junction_degree_targets  # noqa: E402
 
 R_UM, LZ_UM, MEAN_CALIPER_UM = 24.0, 32.0, 2.2
@@ -39,9 +38,9 @@ def slab_targets(M: int, densities: dict[int, float]) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--M", type=int, nargs="+", default=[3, 9, 15, 22])
-    parser.add_argument("--write-configs", type=str, help="write one headless JSON per M here")
+    parser.add_argument("--write-configs", type=str, help="write one JSON config per M here")
     args = parser.parse_args()
-    base = make_profiled_config()
+    base = Program19Config()
     densities = {d: base.node_degree_density_um3[d] for d in base.node_degrees}
     degrees = sorted(densities)
     print("  M    k_um  platelets  " + "  ".join(f"deg{d:<2d}" for d in degrees) + "  total")
@@ -56,15 +55,12 @@ def main() -> None:
         if args.write_configs:
             out = Path(args.write_configs)
             out.mkdir(parents=True, exist_ok=True)
-            config = make_profiled_config(
-                overrides=dict(
-                    platelet_count=int(round(row["platelets"])),
-                    effective_thickness_um=row["k_um"],
-                    layer_spacing_um=row["k_um"],
-                    mechanical_layers=M,
-                )
+            config = Program19Config(
+                platelet_count=int(round(row["platelets"])),
+                effective_thickness_um=row["k_um"],
+                layer_spacing_um=row["k_um"],
+                mechanical_layers=M,
             )
-            # The density path (default domain 48 um, R = 24 um) gives the same counts.
             assert junction_degree_targets(config) == nodes, (M, junction_degree_targets(config))
             config.save_json(out / f"slab_M{M}.json")
 

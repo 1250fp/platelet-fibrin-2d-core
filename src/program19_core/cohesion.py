@@ -6,16 +6,7 @@ import numpy as np
 
 from .config import Program19Config
 from .spatial import NeighborIndex
-from .state import SimulationState
-
-
-def cohesion_degrees(state: SimulationState) -> np.ndarray:
-    """Number of cohesion links attached to each node."""
-    degree = np.zeros(len(state.nodes_um), dtype=int)
-    for a, b in state.cohesion_pairs:
-        degree[a] += 1
-        degree[b] += 1
-    return degree
+from .state import SimulationState, cohesion_degrees
 
 
 def add_new_cohesion_links(state: SimulationState, config: Program19Config) -> int:

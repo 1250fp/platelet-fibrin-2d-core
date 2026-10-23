@@ -226,10 +226,8 @@ def junction_degree_targets(config: Program19Config) -> dict[int, int]:
     Each count is N_V * pi * (domain_size_um / 2)^2 * effective_thickness_um
     (default domain 48 um, i.e. the stereology R = 24 um),
     rounded (no +E[H] term: junctions are points, not spheres).  An explicit
-    count in ``node_degree_counts`` (or ``degree*_count`` in legacy mode) wins.
+    count in ``node_degree_counts`` wins.
     """
-    if config.node_degree_model == "legacy_rho345":
-        return dict(zip((3, 4, 5), junction_target_counts(config)))
     clot_radius = 0.5 * config.domain_size_um
     volume = math.pi * clot_radius**2 * config.effective_thickness_um
     targets = {}
@@ -241,42 +239,9 @@ def junction_degree_targets(config: Program19Config) -> dict[int, int]:
     return targets
 
 
-def junction_target_counts(config: Program19Config) -> tuple[int, int, int]:
-    """Degree-3/4/5 junction counts. A non-negative ``degree*_count`` wins over density.
-
-    Kept for scripts written before degrees 6-7; prefer ``junction_degree_targets``.
-    """
-    if config.node_degree_model != "legacy_rho345":
-        targets = junction_degree_targets(config)
-        return targets.get(3, 0), targets.get(4, 0), targets.get(5, 0)
-    clot_radius = 0.5 * config.domain_size_um
-    volume = math.pi * clot_radius**2 * config.effective_thickness_um
-    n3 = (
-        int(config.degree3_count)
-        if config.degree3_count >= 0
-        else int(round(config.rho_degree3_um3 * volume))
-    )
-    n4 = (
-        int(config.degree4_count)
-        if config.degree4_count >= 0
-        else int(round(config.rho_degree4_um3 * volume))
-    )
-    n5 = (
-        int(config.degree5_count)
-        if config.degree5_count >= 0
-        else int(round(config.rho_degree5_um3 * volume))
-    )
-    return n3, n4, n5
-
-
 def build_initial_state(config: Program19Config) -> SimulationState:
     """Generate one planar mechanical realization with explicit fiber identity."""
     config.validate()
-    if config.geometry_profile != "generated_2d":
-        raise ValueError(
-            f"geometry_profile={config.geometry_profile!r} (CodeOcean XML projection) is not "
-            "part of the 2-D core; use the platelet-fibrin-transport-lab-modernized folder"
-        )
     sequence = np.random.SeedSequence(config.seed)
     rng_geometry, rng_filopodia = [np.random.default_rng(s) for s in sequence.spawn(2)]
     clot_radius = 0.5 * config.domain_size_um
