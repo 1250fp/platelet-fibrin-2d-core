@@ -1,13 +1,6 @@
-"""Validated configuration for Program19.3.
+"""Validated configuration for the Program19.3 2-D clot mechanics core.
 
 All mechanics use micrometres (um), nanonewtons (nN), and seconds (s).
-Four independent profile axes prevent a source-reproduction choice from being
-silently mixed with thesis parameters or corrected numerics:
-
-``equation_profile`` selects constitutive equations, ``parameter_profile``
-records the numerical parameter set, ``numerical_profile`` selects the time
-integration/noise convention, and ``geometry_profile`` selects generated 2-D
-geometry or an explicit XY projection of a Michael CodeOcean XML network.
 """
 
 from __future__ import annotations
@@ -20,17 +13,7 @@ import math
 
 
 EQUATION_PROFILES = ("paper_consistent", "codeocean_literal")
-PARAMETER_PROFILES = (
-    "thesis_audited",
-    "minipaper_revision",
-    "codeocean_data_xml",
-    "codeocean_data_pdf",
-    "custom",
-)
-NUMERICAL_PROFILES = ("corrected_adaptive", "codeocean_fixed_step")
-GEOMETRY_PROFILES = ("generated_2d", "codeocean_xml_xy")
 MECHANICS_BACKENDS = ("python", "cuda")
-# Backward-compatible import name for scripts written for Program19.
 PHYSICS_PROFILES = EQUATION_PROFILES
 MOBILITY_MODELS = ("effective_network", "free_stokes")
 THERMAL_NOISE_MODELS = ("gaussian_independent", "codeocean_uniform_shared")
@@ -43,19 +26,12 @@ FILOPODIA_SELECTION_RULES = ("nearest_free", "codeocean_random")
 FILOPODIA_FORCE_DISTRIBUTIONS = ("full_per_arm", "divide_by_attached")
 FILOPODIA_HANDOVER_RULES = ("global_reacquire", "graph_neighbor")
 TRAJECTORY_DETAILS = ("positions", "topology")
-NODE_DEGREE_MODELS = ("density_table", "legacy_rho345")
-# Default domain when domain_size_um is not given: 48 um (R = 24 um, the
-# stereology cylinder) for generated density_table clots, otherwise the
-# audited 47.6 um.  An explicit or stored domain_size_um is never changed.
-DEFAULT_DOMAIN_SIZE_UM = 47.6
-DENSITY_TABLE_DOMAIN_SIZE_UM = 48.0
+DEFAULT_DOMAIN_SIZE_UM = 48.0
 
 # Fibrin junction densities N_V (um^-3) by node degree, from Michael & Pancaldi
-# (2023) Code Ocean capsule, simulations/ input XML of sample 1 (identical in
-# the Standard, High and Low sets): junction count of each degree divided by
-# the volume of the R = 24 um sphere, 4/3*pi*24^3 = 57,906 um^3.  Degrees 0-2
-# (10 of 1,000 junctions) are deliberately excluded.  Platelets in the same
-# sample: 45 -> 7.77e-4 um^-3 (platelet_count is still set explicitly).
+# (2023) Code Ocean capsule, simulations/ input XML of sample 1: junction count
+# of each degree divided by the volume of the R = 24 um sphere, 4/3*pi*24^3 =
+# 57,906 um^3. Degrees 0-2 (10 of 1,000 junctions) are excluded.
 CAPSULE_SAMPLE1_VOLUME_UM3 = 4.0 / 3.0 * math.pi * 24.0**3
 CAPSULE_SAMPLE1_DEGREE_COUNTS = {3: 416, 4: 289, 5: 102, 6: 95, 7: 80}
 CAPSULE_SAMPLE1_DEGREE_DENSITY_UM3 = {
@@ -70,39 +46,21 @@ class Program19Config:
     duration_s: float = 1.0
     dt_s: float = 0.001
     output_interval_s: float = 0.10
-    preview_interval_s: float = 0.10
     seed: int = 2035
     equation_profile: str = "paper_consistent"
-    parameter_profile: str = "thesis_audited"
-    numerical_profile: str = "corrected_adaptive"
-    geometry_profile: str = "generated_2d"
-    codeocean_xml_path: str = ""
     output_root: str = ""
     mechanics_backend: str = "python"
     save_trajectory: bool = True
     trajectory_detail: str = "topology"
 
-    # Initial planar clot geometry
-    domain_size_um: float | None = None  # None -> resolved in __post_init__
+    # Initial planar clot geometry (default R = 24 um -> domain 48 um)
+    domain_size_um: float = DEFAULT_DOMAIN_SIZE_UM
     effective_thickness_um: float = 1.0
-    # Junction degrees.  "density_table" (default) generates every degree in
-    # node_degrees with count round(N_V * pi * (domain_size_um/2)^2 * thickness)
-    # from node_degree_density_um3, unless node_degree_counts gives an explicit
-    # count.  "legacy_rho345" is the pre-2026-10-22 generator: degrees 3/4/5
-    # from the rho_degree*_um3 / degree*_count fields below, bitwise identical.
-    # Configs saved before this option existed load as "legacy_rho345".
-    node_degree_model: str = "density_table"
     node_degrees: tuple[int, ...] = (3, 4, 5, 6, 7)
     node_degree_density_um3: dict[int, float] = field(
         default_factory=lambda: dict(CAPSULE_SAMPLE1_DEGREE_DENSITY_UM3)
     )
     node_degree_counts: dict[int, int] = field(default_factory=dict)
-    rho_degree3_um3: float = 0.02000
-    rho_degree4_um3: float = 0.00379
-    rho_degree5_um3: float = 0.0
-    degree3_count: int = -1
-    degree4_count: int = -1
-    degree5_count: int = -1
     main_node_min_spacing_um: float = 1.0
     segment_target_um: float = 0.30
     platelet_count: int = 45
@@ -160,32 +118,14 @@ class Program19Config:
     max_internal_substeps: int = 10_000
     abort_displacement_um: float = 1.0
 
-    # Rasterisation and mechanically generated spatial stack
-    raster_resolution: int = 256
-    clot_support_padding_um: float = 0.50
+    # Independent mechanical layers
     mechanical_layers: int = 50
-    mechanical_workers: int = 1
     layer_spacing_um: float = 0.070
     layer_seed_stride: int = 1
-    save_intermediate_masks: bool = True
-
-    # Void accessibility and optional first-passage experiment
-    particle_radius_um: float = 0.10
-    run_transport: bool = False
-    tracer_diffusion_um2_s: float = 1.0
-    transport_particles: int = 500
-    transport_dt_s: float = 0.001
-    transport_max_time_s: float = 5.0
-    tracer_injection_rate_cells_s: float = 0.0
 
     def __post_init__(self) -> None:
         if self.domain_size_um is None:
-            self.domain_size_um = (
-                DENSITY_TABLE_DOMAIN_SIZE_UM
-                if self.node_degree_model == "density_table"
-                and self.geometry_profile == "generated_2d"
-                else DEFAULT_DOMAIN_SIZE_UM
-            )
+            self.domain_size_um = DEFAULT_DOMAIN_SIZE_UM
 
     def validate(self) -> None:
         positive = {
@@ -200,24 +140,14 @@ class Program19Config:
             "platelet_radius_um": self.platelet_radius_um,
             "platelet_force_radius_um": self.platelet_force_radius_um,
             "adaptive_target_displacement_um": self.adaptive_target_displacement_um,
-            "raster_resolution": self.raster_resolution,
-            "clot_support_padding_um": self.clot_support_padding_um,
             "mechanical_layers": self.mechanical_layers,
-            "mechanical_workers": self.mechanical_workers,
             "layer_spacing_um": self.layer_spacing_um,
-            "particle_radius_um": self.particle_radius_um,
         }
         for name, value in positive.items():
             if not math.isfinite(float(value)) or float(value) <= 0.0:
                 raise ValueError(f"{name} must be positive; received {value!r}")
         if self.equation_profile not in EQUATION_PROFILES:
             raise ValueError(f"equation_profile must be one of {EQUATION_PROFILES}")
-        if self.parameter_profile not in PARAMETER_PROFILES:
-            raise ValueError(f"parameter_profile must be one of {PARAMETER_PROFILES}")
-        if self.numerical_profile not in NUMERICAL_PROFILES:
-            raise ValueError(f"numerical_profile must be one of {NUMERICAL_PROFILES}")
-        if self.geometry_profile not in GEOMETRY_PROFILES:
-            raise ValueError(f"geometry_profile must be one of {GEOMETRY_PROFILES}")
         if self.mobility_model not in MOBILITY_MODELS:
             raise ValueError(f"mobility_model must be one of {MOBILITY_MODELS}")
         if self.thermal_noise_model not in THERMAL_NOISE_MODELS:
@@ -242,37 +172,17 @@ class Program19Config:
             raise ValueError("gamma_max must satisfy 0 < gamma_max < C")
         if self.platelet_count < 0:
             raise ValueError("platelet_count cannot be negative")
-        if self.node_degree_model not in NODE_DEGREE_MODELS:
-            raise ValueError(f"node_degree_model must be one of {NODE_DEGREE_MODELS}")
-        if self.node_degree_model == "density_table":
-            legacy = [
-                name
-                for name in ("degree3_count", "degree4_count", "degree5_count",
-                             "rho_degree3_um3", "rho_degree4_um3", "rho_degree5_um3")
-                if getattr(self, name) != getattr(Program19Config, name)
-            ]
-            if legacy:
-                raise ValueError(
-                    f"{', '.join(legacy)} only apply with node_degree_model='legacy_rho345'; "
-                    "use node_degree_counts / node_degree_density_um3 instead"
-                )
-            if not self.node_degrees or len(set(self.node_degrees)) != len(self.node_degrees):
-                raise ValueError("node_degrees must list distinct degrees")
-            for degree in self.node_degrees:
-                if int(degree) != degree or degree < 1:
-                    raise ValueError(f"node degree {degree!r} must be a positive integer")
-                if degree not in self.node_degree_counts and degree not in self.node_degree_density_um3:
-                    raise ValueError(f"degree {degree} has no density or explicit count")
-            if any(float(value) < 0.0 for value in self.node_degree_density_um3.values()):
-                raise ValueError("node_degree_density_um3 values cannot be negative")
-            if any(int(value) < 0 for value in self.node_degree_counts.values()):
-                raise ValueError("node_degree_counts values cannot be negative")
-        for name in ("rho_degree3_um3", "rho_degree4_um3", "rho_degree5_um3"):
-            if float(getattr(self, name)) < 0.0:
-                raise ValueError(f"{name} cannot be negative")
-        for name in ("degree3_count", "degree4_count", "degree5_count"):
-            if int(getattr(self, name)) < -1:
-                raise ValueError(f"{name} must be -1 (from density) or a non-negative count")
+        if not self.node_degrees or len(set(self.node_degrees)) != len(self.node_degrees):
+            raise ValueError("node_degrees must list distinct degrees")
+        for degree in self.node_degrees:
+            if int(degree) != degree or degree < 1:
+                raise ValueError(f"node degree {degree!r} must be a positive integer")
+            if degree not in self.node_degree_counts and degree not in self.node_degree_density_um3:
+                raise ValueError(f"degree {degree} has no density or explicit count")
+        if any(float(value) < 0.0 for value in self.node_degree_density_um3.values()):
+            raise ValueError("node_degree_density_um3 values cannot be negative")
+        if any(int(value) < 0 for value in self.node_degree_counts.values()):
+            raise ValueError("node_degree_counts values cannot be negative")
         if not 0.0 <= self.platelet_near_node_fraction <= 1.0:
             raise ValueError("platelet_near_node_fraction must be in [0,1]")
         if not 0.0 < self.platelet_core_fraction <= 1.0:
@@ -291,16 +201,6 @@ class Program19Config:
             raise ValueError("max_internal_substeps must be at least 1")
         if self.layer_seed_stride < 1:
             raise ValueError("layer_seed_stride must be at least 1")
-        if int(self.mechanical_workers) != self.mechanical_workers or self.mechanical_workers < 1:
-            raise ValueError("mechanical_workers must be a positive integer")
-        if self.run_transport:
-            for name in ("tracer_diffusion_um2_s", "transport_dt_s", "transport_max_time_s"):
-                if float(getattr(self, name)) <= 0.0:
-                    raise ValueError(f"{name} must be positive")
-            if self.transport_particles < 1:
-                raise ValueError("transport_particles must be at least 1")
-        if self.tracer_injection_rate_cells_s < 0.0:
-            raise ValueError("tracer_injection_rate_cells_s cannot be negative")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -308,28 +208,21 @@ class Program19Config:
     @classmethod
     def from_dict(cls, values: dict[str, Any]) -> "Program19Config":
         values = dict(values)
-        # Program19 JSON files remain loadable. The old archive_literal label
-        # is now the more precise codeocean_literal equation profile.
         if "physics_profile" in values and "equation_profile" not in values:
             old = values.pop("physics_profile")
             values["equation_profile"] = (
                 "codeocean_literal" if old == "archive_literal" else old
             )
-        # Configs written before node_degree_model existed used degrees 3/4/5.
-        if "node_degree_model" not in values:
-            values["node_degree_model"] = "legacy_rho345"
-            values.setdefault("node_degrees", (3, 4, 5))
-        # JSON turns tuples into lists and integer dict keys into strings.
+        if values.get("domain_size_um") is None:
+            values.pop("domain_size_um", None)
         if "node_degrees" in values:
             values["node_degrees"] = tuple(int(d) for d in values["node_degrees"])
         for name, cast in (("node_degree_density_um3", float), ("node_degree_counts", int)):
             if name in values:
                 values[name] = {int(d): cast(v) for d, v in values[name].items()}
         known = {item.name for item in fields(cls)}
-        unknown = sorted(set(values) - known)
-        if unknown:
-            raise ValueError(f"Unknown configuration keys: {', '.join(unknown)}")
-        result = cls(**values)
+        filtered = {k: v for k, v in values.items() if k in known}
+        result = cls(**filtered)
         result.validate()
         return result
 

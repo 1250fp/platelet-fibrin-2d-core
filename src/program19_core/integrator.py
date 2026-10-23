@@ -13,32 +13,11 @@ from .state import (
     ForceDiagnostics,
     SimulationState,
     StepDiagnostics,
+    kbt_nN_um,
     max_vector_norm,
+    mobility_and_diffusion,
 )
-from .wlc import backbone_and_cohesion_forces, kbt_nN_um
-
-
-def mobility_and_diffusion(
-    config: Program19Config,
-) -> tuple[float, float, float, float]:
-    """Return node/platelet drag (nN*s/um) and D (um^2/s).
-
-    ``effective_network`` interprets the Michael coefficients as effective
-    structural drag. ``free_stokes`` uses 6*pi*mu*r with full SI conversion;
-    it reproduces the corrected free-particle diffusion calculation and can be
-    much faster dynamically, therefore requiring many adaptive substeps.
-    """
-    if config.mobility_model == "effective_network":
-        node_drag = config.effective_node_drag_nN_s_per_um
-        platelet_drag = config.effective_platelet_drag_nN_s_per_um
-    else:
-        node_radius_m = config.fiber_radius_um * 1e-6
-        platelet_radius_m = config.platelet_radius_um * 1e-6
-        # N*s/m -> nN*s/um multiplies by 1e3.
-        node_drag = 6.0 * math.pi * config.viscosity_Pa_s * node_radius_m * 1e3
-        platelet_drag = 6.0 * math.pi * config.viscosity_Pa_s * platelet_radius_m * 1e3
-    thermal = kbt_nN_um(config)
-    return node_drag, platelet_drag, thermal / node_drag, thermal / platelet_drag
+from .wlc import backbone_and_cohesion_forces
 
 
 def calculate_forces(

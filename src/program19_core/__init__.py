@@ -2,7 +2,7 @@
 
 from .config import Program19Config
 from .mechanical_runner import run_pipeline
-from .profiles import make_profiled_config
+from .state import SimulationState
 
-__all__ = ["Program19Config", "make_profiled_config", "run_pipeline"]
-__version__ = "0.4.0"
+__all__ = ["Program19Config", "SimulationState", "run_pipeline"]
+__version__ = "0.6.0"

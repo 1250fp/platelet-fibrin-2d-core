@@ -5,15 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from .config import Program19Config
-from .state import SimulationState, rms_vectors
-
-K_B_J_PER_K = 1.380649e-23
-J_PER_NN_UM = 1.0e-15
-
-
-def kbt_nN_um(config: Program19Config) -> float:
-    """Thermal energy k_B*T in nN*um (1 nN*um = 1e-15 J); ~4.14e-6 nN*um at 300 K."""
-    return K_B_J_PER_K * config.temperature_K / J_PER_NN_UM
+from .state import J_PER_NN_UM, K_B_J_PER_K, SimulationState, kbt_nN_um, rms_vectors
 
 
 def engineering_strain(distance_um, reference_um, config: Program19Config):

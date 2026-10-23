@@ -17,11 +17,15 @@ from pathlib import Path
 
 import numpy as np
 
-from .cohesion import add_new_cohesion_links, cohesion_degrees
 from .config import Program19Config
-from .integrator import mobility_and_diffusion
-from .state import ForceDiagnostics, SimulationState, StepDiagnostics
-from .wlc import kbt_nN_um
+from .state import (
+    ForceDiagnostics,
+    SimulationState,
+    StepDiagnostics,
+    cohesion_degrees,
+    kbt_nN_um,
+    mobility_and_diffusion,
+)
 
 
 _RUNTIME: "CudaRuntime | None" = None
@@ -620,8 +624,6 @@ class CudaSession:
             return 0
         capacity = max(self.n_nodes * 64, 1024)
         found = self._gather_cohesion_count(radius * radius, capacity)
-        if found is None:
-            return add_new_cohesion_links(state, config)
         if found == 0:
             return 0
         feasible = self._count_feasible_candidates(state, config, found)
@@ -659,7 +661,7 @@ class CudaSession:
         self.runtime.download(count, out_count.pointer)
         found = int(count[0])
         if found > capacity:
-            return None
+            return self._gather_cohesion_count(radius2, found)
         return found
 
     def _download_cohesion_candidates(self, found: int) -> tuple[np.ndarray, np.ndarray]:
