@@ -33,6 +33,8 @@ python -m pip install -r requirements.txt
 
 ## Quickstart
 
+Step-by-step guide (full M-slab clot, seeds, output files, loading with numpy): [TUTORIAL.md](TUTORIAL.md).
+
 ```bash
 python scripts/slab_degree_targets.py --write-configs configs
 python src/program19_3.py --config configs/slab_M3.json --layers 1 --duration 60 --backend cuda --output-root runs
