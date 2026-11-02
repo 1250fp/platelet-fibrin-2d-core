@@ -161,7 +161,8 @@ extern "C" __global__ void update_filopodia(
         for (int node = 0; node < n_nodes && count < limit; ++node) {
             double dx = node_x[node] - cx;
             double dy = node_y[node] - cy;
-            if (dx * dx + dy * dy <= outer2) candidates[slot + count++] = node;
+            // Same hypot test as the selection pass below, so the list keeps every eligible node.
+            if (dx * dx + dy * dy <= outer2 && hypot(dx, dy) >= filo_inner) candidates[slot + count++] = node;
         }
         candidates[slot + limit] = count;
     }
